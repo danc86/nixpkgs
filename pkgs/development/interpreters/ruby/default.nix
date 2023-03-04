@@ -26,6 +26,7 @@ let
   generic = { version, sha256 }: let
     ver = version;
     tag = ver.gitTag;
+    atLeast25 = lib.versionAtLeast ver.majMin "2.5";
     atLeast27 = lib.versionAtLeast ver.majMin "2.7";
     baseruby = self.override {
       useRailsExpress = false;
@@ -115,10 +116,16 @@ let
           cp -r ${rubygems}/test/rubygems $sourceRoot/test
         '';
 
-        postPatch = ''
+        postPatch = (if atLeast25 then ''
           sed -i configure.ac -e '/config.guess/d'
           cp --remove-destination ${config}/config.guess tool/
           cp --remove-destination ${config}/config.sub tool/
+        ''
+        else opString useRailsExpress ''
+          sed -i configure.in -e '/config.guess/d'
+          cp ${config}/config.guess tool/
+          cp ${config}/config.sub tool/
+        '') + ''
           # Make the build reproducible for ruby <= 2.7
           # See https://github.com/ruby/io-console/commit/679a941d05d869f5e575730f6581c027203b7b26#diff-d8422f096931c58d4463e2489f62a228b0f24f0492950ba88c8c89a0d741cfe6
           sed -i ext/io/console/io-console.gemspec -e '/s\.date/d'
@@ -243,6 +250,14 @@ let
     ) args; in self;
 
 in {
+  ruby_2_4 = generic {
+    version = rubyVersion "2" "4" "9" "";
+    sha256 = {
+      src = "1bn6n5b920qy3lsx99jr8495jkc3sg89swgb96d5fgd579g6p6zr";
+      git = "066kb1iki7mx7qkm10xhj5b6v8s47wg68v43l3nc36y2hyim1w2c";
+    };
+  };
+
   ruby_2_5 = generic {
     version = rubyVersion "2" "5" "8" "";
     sha256 = {
